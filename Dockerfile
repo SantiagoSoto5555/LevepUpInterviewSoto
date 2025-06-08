@@ -11,10 +11,7 @@ WORKDIR /app
 # Copiamos el JAR compilado
 COPY --from=build /home/gradle/project/build/libs/*.jar app.jar
 
-# Copiamos el wallet a /app/wallet
-COPY src/main/resources/wallet /app/wallet
-
-# Exponer puerto si usás uno (por defecto Spring Boot es 8080)
+# Exponer puerto (Spring Boot usa 8080 por defecto)
 EXPOSE 8080
 
 # Comando para correr la app
