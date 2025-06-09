@@ -25,7 +25,7 @@
 </table>
 
 <script>
-    fetch('http://localhost:8080/usuarios') // Ajusta el puerto si es necesario
+    fetch('/usuarios') // Ajusta el puerto si es necesario
         .then(response => response.json())
         .then(data => {
             const tbody = document.querySelector('#usuariosTable tbody');
