@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @RestController
 @RequestMapping("usuarios")
+@CrossOrigin(origins = {"https://levepupinterviewsoto.onrender.com", "http://localhost:5500"})
 public class UsuarioController {
 
     @Autowired
