@@ -1,20 +1,52 @@
 package com.santi.levelupinterview;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @RestController
+@RequestMapping("usuarios")
 public class UsuarioController {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    @GetMapping("/usuarios")
+    @GetMapping
     public List<Usuario> obtenerUsuarios() {
-        List<Usuario> usuarios = usuarioRepository.findAll();
-        System.out.println(usuarios);
-        return usuarios;
+        return usuarioRepository.findAll();
+    }
+
+    @PostMapping
+    public ResponseEntity<Usuario> crearUsuario(@RequestBody Usuario usuario) {
+        Usuario nuevoUsuario = usuarioRepository.save(usuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoUsuario);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Usuario> actualizarUsuario(@PathVariable int id, @RequestBody Usuario usuario) {
+        return usuarioRepository.findById(id)
+                .map(usuarioExistente -> {
+                    usuarioExistente.setNombre(usuario.getNombre());
+                    usuarioExistente.setEmail(usuario.getEmail());
+                    if (usuario.getContrasena() != null) {
+                        usuarioExistente.setContrasena(usuario.getContrasena());
+                    }
+                    Usuario usuarioActualizado = usuarioRepository.save(usuarioExistente);
+                    return ResponseEntity.ok(usuarioActualizado);
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarUsuario(@PathVariable int id) {
+        return usuarioRepository.findById(id)
+                .map(usuario -> {
+                    usuarioRepository.delete(usuario);
+                    return ResponseEntity.ok().build();
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
