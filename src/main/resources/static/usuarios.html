@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #fd4b4b;
-            --secondary: #ea2121;
+            --primary: #f95757;
+            --secondary: #ff3f00;
             --dark: #1b263b;
             --light: #f8f9fa;
             --success: #4cc9f0;
@@ -391,8 +391,11 @@
     <div class="header-content">
         <div class="logo">
             <i class="fas fa-users"></i>
-            <span>UserManager</span>
+            <span>LevelUpManager</span>
         </div>
+        <button id="historyBtn" style="background: none; border: none; color: white; font-size: 1.2rem; margin-right: 15px;">
+            <i class="fas fa-history"></i>
+        </button>
         <button id="addUserBtn" style="background: none; border: none; color: white; font-size: 1.2rem;">
             <i class="fas fa-plus"></i>
         </button>
@@ -416,7 +419,34 @@
         </div>
     </div>
 </div>
-
+<!-- Modal para historial -->
+<div class="modal" id="historyModal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h3>Historial de Actividades</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="table-container">
+                <table id="historyTable">
+                    <thead>
+                    <tr>
+                        <th>ID Usuario</th>
+                        <th>Acción</th>
+                        <th>Fecha</th>
+                    </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                    <!-- Los registros de historial se cargarán aquí -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary modal-close">Cerrar</button>
+        </div>
+    </div>
+</div>
 <!-- Modal para agregar/editar usuario -->
 <div class="modal" id="userModal">
     <div class="modal-content">
@@ -453,12 +483,187 @@
     <i class="fas fa-check-circle"></i>
     <span id="toastMessage">Operación exitosa</span>
 </div>
+<style>
+    /* Estilos para el botón de historial */
+    #historyBtn {
+        transition: transform 0.2s;
+    }
 
+    #historyBtn:hover {
+        transform: scale(1.1);
+        cursor: pointer;
+    }
+
+    /* Estilos para la tabla de historial */
+    .table-container {
+        max-height: 60vh;
+        overflow-y: auto;
+        margin-bottom: 20px;
+    }
+
+    #historyTable {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    #historyTable th, #historyTable td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    #historyTable th {
+        background-color: #f5f5f5;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    #historyTable tr:hover {
+        background-color: #f9f9f9;
+    }
+
+    /* Estilos para fechas en el historial */
+    .history-date {
+        white-space: nowrap;
+        color: #666;
+        font-size: 0.9em;
+    }
+</style>
+<script>
+    // Elementos del DOM para el historial
+    const historyBtn = document.getElementById('historyBtn');
+    const historyModal = document.getElementById('historyModal');
+    const historyTableBody = document.getElementById('historyTableBody');
+
+    // Event listener para el botón de historial
+    historyBtn.addEventListener('click', openHistoryModal);
+
+    // Función para abrir el modal de historial
+    async function openHistoryModal() {
+        try {
+            // Mostrar estado de carga
+            historyTableBody.innerHTML = `
+                <tr>
+                    <td colspan="3" style="text-align: center;">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando historial...
+                    </td>
+                </tr>
+            `;
+
+            historyModal.style.display = 'flex';
+
+            // Llamada a la API para obtener el historial real
+            const response = await fetch(`${API_BASE_URL}/api/logs`);
+
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${await response.text()}`);
+            }
+
+            const historyData = await response.json();
+
+            if (historyData.length === 0) {
+                renderNoDataMessage();
+            } else {
+                renderHistory(historyData);
+            }
+        } catch (error) {
+            console.error('Error al cargar el historial:', error);
+            renderErrorMessage(error);
+        }
+    }
+
+    // Función para renderizar el historial
+    function renderHistory(historyData) {
+        historyTableBody.innerHTML = historyData.map(item => `
+            <tr>
+                <td>${item.usuarioId || 'Sistema'}</td>
+                <td>
+                    <div><strong>${item.accion}</strong></div>
+                    ${item.datos ? `<small class="data-preview">${formatDataPreview(item.datos)}</small>` : ''}
+                </td>
+                <td class="history-date">${formatDate(item.fecha)}</td>
+            </tr>
+        `).join('');
+    }
+
+    // Función para mostrar mensaje cuando no hay datos
+    function renderNoDataMessage() {
+        historyTableBody.innerHTML = `
+            <tr>
+                <td colspan="3" style="text-align: center;">
+                    No se encontraron registros de historial
+                </td>
+            </tr>
+        `;
+    }
+
+    // Función para mostrar mensaje de error
+    function renderErrorMessage(error) {
+        historyTableBody.innerHTML = `
+            <tr>
+                <td colspan="3" style="text-align: center; color: #dc3545;">
+                    <i class="fas fa-exclamation-circle"></i> Error al cargar el historial: ${error.message}
+                </td>
+            </tr>
+        `;
+    }
+
+    // Función para formatear la vista previa de los datos JSON
+    function formatDataPreview(jsonString) {
+        try {
+            const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+            if (typeof data !== 'object') return jsonString;
+
+            return Object.entries(data)
+                .map(([key, value]) => {
+                    if (value && typeof value === 'object') {
+                        return `${key}: [objeto]`;
+                    }
+                    return `${key}: ${value}`;
+                })
+                .join(', ');
+        } catch {
+            return jsonString;
+        }
+    }
+
+    // Función para formatear la fecha
+    function formatDate(dateString) {
+        if (!dateString) return 'Fecha no disponible';
+
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+
+        return date.toLocaleString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // Cerrar modal al hacer clic en los botones de cerrar
+    document.querySelectorAll('#historyModal .modal-close').forEach(btn => {
+        btn.addEventListener('click', () => {
+            historyModal.style.display = 'none';
+        });
+    });
+
+    // Cerrar modal al hacer clic fuera del contenido
+    historyModal.addEventListener('click', (e) => {
+        if (e.target === historyModal) {
+            historyModal.style.display = 'none';
+        }
+    });
+</script>
 <script>
     // Variables globales
     let users = [];
     let currentUserId = null;
-    const API_BASE_URL = 'https://levepupinterviewsoto.onrender.com'; // Ajusta según tu configuración
+    const API_BASE_URL = 'https:levepupinterviewsoto.onrender.com'; //http://localhost:8080
 
     // Elementos del DOM
     const usersList = document.getElementById('usersList');
